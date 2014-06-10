@@ -56,9 +56,6 @@ class SPMImageCache : NSObject {
     }
 }
 
-protocol PASImageViewDelegate {
-    func PAImageView(didTapped: UIView)
-}
 
 class PASImageView : UIView, NSURLSessionDownloadDelegate {
     var cacheEnabled                = true
@@ -125,7 +122,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     }
     
     func handleSingleTap(gesture: UIGestureRecognizer) {
-        delegate?.PAImageView(self)
+        delegate?.PAImageView(didTapped: self)
     }
     
     func backgroundProgressColor(color: UIColor) {
@@ -203,4 +200,10 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     }
     
 }
+
+protocol PASImageViewDelegate {
+    
+    func PAImageView(didTapped imageView: PASImageView)
+}
+
 
