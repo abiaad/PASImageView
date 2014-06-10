@@ -1,6 +1,6 @@
 //
-//  PAImageView.swift
-//  PAImageSwiftView
+//  PASImageView.swift
+//  PASImageView
 //
 //  Created by Pierre Abi-aad on 09/06/2014.
 //  Copyright (c) 2014 Pierre Abi-aad. All rights reserved.
@@ -19,18 +19,18 @@ func rad(degrees : Float) -> Float {
 
 class SPMImageCache : NSObject {
     var cachePath = String()
-    var fileManager = NSFileManager.defaultManager()
+    let fileManager = NSFileManager.defaultManager()
     
     init() {
-        super.init()
         let paths = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.CachesDirectory, NSSearchPathDomainMask.UserDomainMask, true)
         let rootCachePath : AnyObject = paths[0]
         
         self.cachePath = rootCachePath.stringByAppendingPathComponent(spm_identifier)
-        println(self.cachePath)
+
         if !self.fileManager.fileExistsAtPath(self.cachePath) {
             self.fileManager.createDirectoryAtPath(self.cachePath, withIntermediateDirectories: false, attributes: nil, error: nil)
         }
+        super.init()
     }
     
     func image(image: UIImage, URL: NSURL) {
@@ -56,25 +56,29 @@ class SPMImageCache : NSObject {
     }
 }
 
-
+protocol PASImageViewDelegate {
+    func PAImageView(didTapped: UIView)
+}
 
 class PASImageView : UIView, NSURLSessionDownloadDelegate {
     var cacheEnabled                = true
     var placeHolderImage            = UIImage()
-    var backgroundProgressColor     = UIColor.whiteColor()
-    var progressColor               = UIColor.blueColor()
+    var backgroundProgressColor     = UIColor.blackColor()
+    var progressColor               = UIColor.redColor()
     var backgroundLayer             = CAShapeLayer()
     var progressLayer               = CAShapeLayer()
     var containerImageView          = UIImageView()
     var progressContainer           = UIView()
     var cache                       = SPMImageCache()
-    var mutableData                 = NSMutableData()
+    var delegate                    :PASImageViewDelegate?
+    
+    convenience init(frame: CGRect, delegate: PASImageViewDelegate) {
+        self.init(frame: frame)
+        self.delegate = delegate
+    }
     
     init(frame: CGRect) {
         super.init(frame: frame)
-        
-        self.backgroundProgressColor    = UIColor.blackColor()
-        self.progressColor              = UIColor.redColor()
         
         self.layer.cornerRadius         = CGRectGetWidth(self.bounds)/2.0
         self.layer.masksToBounds        = false
@@ -84,8 +88,8 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         println(CGRectGetMidX(self.bounds))
         let arcCenter   = CGPoint(x: CGRectGetMidX(self.bounds), y: CGRectGetMidY(self.bounds))
         let radius      = Float(min(CGRectGetMidX(self.bounds) - 1, CGRectGetMidY(self.bounds)-1))
-        println(arcCenter)
         let circlePath  = UIBezierPath(arcCenter: arcCenter, radius: radius, startAngle: -rad(90), endAngle: rad(360-90), clockwise: true)
+        
         
         self.backgroundLayer.path           = circlePath.CGPath
         self.backgroundLayer.strokeColor    = backgroundProgressColor.CGColor
@@ -121,7 +125,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     }
     
     func handleSingleTap(gesture: UIGestureRecognizer) {
-        println("handleSingleTap")
+        delegate?.PAImageView(self)
     }
     
     func backgroundProgressColor(color: UIColor) {
@@ -132,7 +136,6 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     func progressColor(color: UIColor) {
         self.progressColor              = color
         self.progressLayer.strokeColor  = self.progressColor.CGColor
-        
     }
     
     func placeHolderImage(image: UIImage) {
@@ -174,7 +177,6 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
             self.backgroundLayer.strokeStart    = progress;
         })
     }
-    
     
     func updateImage(image: UIImage, animated: Bool) {
         let duration    = (animated) ? 0.3 : 0.0
