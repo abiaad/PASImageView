@@ -3,6 +3,7 @@
 
 **Rounded async imageview downloader lightly cached and written in Swift**
 
+[Objective-C version here](https://github.com/abiaad/PAImageView)
 
 ## Snapshot
 
@@ -28,4 +29,4 @@ self.view.addSubview(imageView)
 
 ## License
 
-PAImageView is available under the MIT license.
+PASImageView is available under the MIT license.
