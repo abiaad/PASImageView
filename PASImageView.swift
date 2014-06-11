@@ -25,10 +25,10 @@ class SPMImageCache : NSObject {
         let paths = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.CachesDirectory, NSSearchPathDomainMask.UserDomainMask, true)
         let rootCachePath : AnyObject = paths[0]
         
-        self.cachePath = rootCachePath.stringByAppendingPathComponent(spm_identifier)
+        cachePath = rootCachePath.stringByAppendingPathComponent(spm_identifier)
 
-        if !self.fileManager.fileExistsAtPath(self.cachePath) {
-            self.fileManager.createDirectoryAtPath(self.cachePath, withIntermediateDirectories: false, attributes: nil, error: nil)
+        if !fileManager.fileExistsAtPath(cachePath) {
+            fileManager.createDirectoryAtPath(cachePath, withIntermediateDirectories: false, attributes: nil, error: nil)
         }
         super.init()
     }
@@ -88,35 +88,35 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         let circlePath  = UIBezierPath(arcCenter: arcCenter, radius: radius, startAngle: -rad(90), endAngle: rad(360-90), clockwise: true)
         
         
-        self.backgroundLayer.path           = circlePath.CGPath
-        self.backgroundLayer.strokeColor    = backgroundProgressColor.CGColor
-        self.backgroundLayer.fillColor      = UIColor.clearColor().CGColor
-        self.backgroundLayer.lineWidth      = kLineWidth
+        backgroundLayer.path           = circlePath.CGPath
+        backgroundLayer.strokeColor    = backgroundProgressColor.CGColor
+        backgroundLayer.fillColor      = UIColor.clearColor().CGColor
+        backgroundLayer.lineWidth      = kLineWidth
         
-        self.progressLayer.path             = self.backgroundLayer.path
-        self.progressLayer.strokeColor      = progressColor.CGColor
-        self.progressLayer.fillColor        = self.backgroundLayer.fillColor
-        self.progressLayer.lineWidth        = self.backgroundLayer.lineWidth
-        self.progressLayer.strokeEnd        = 0.0
+        progressLayer.path             = backgroundLayer.path
+        progressLayer.strokeColor      = progressColor.CGColor
+        progressLayer.fillColor        = backgroundLayer.fillColor
+        progressLayer.lineWidth        = backgroundLayer.lineWidth
+        progressLayer.strokeEnd        = 0.0
         
         
-        self.progressContainer                      = UIView(frame: CGRectMake(0, 0, frame.size.width, frame.size.height))
-        self.progressContainer.layer.cornerRadius   = CGRectGetWidth(self.bounds)/2.0
-        self.progressContainer.layer.masksToBounds  = false
-        self.progressContainer.clipsToBounds        = true
-        self.progressContainer.backgroundColor      = UIColor.clearColor()
+        progressContainer                      = UIView(frame: CGRectMake(0, 0, frame.size.width, frame.size.height))
+        progressContainer.layer.cornerRadius   = CGRectGetWidth(self.bounds)/2.0
+        progressContainer.layer.masksToBounds  = false
+        progressContainer.clipsToBounds        = true
+        progressContainer.backgroundColor      = UIColor.clearColor()
         
-        self.containerImageView                     = UIImageView(frame: CGRectMake(1, 1, frame.size.width-2, frame.size.height-2))
-        self.containerImageView.layer.cornerRadius  = CGRectGetWidth(self.bounds)/2.0
-        self.containerImageView.layer.masksToBounds = false
-        self.containerImageView.clipsToBounds       = true
-        self.containerImageView.contentMode         = UIViewContentMode.ScaleAspectFill
+        containerImageView                     = UIImageView(frame: CGRectMake(1, 1, frame.size.width-2, frame.size.height-2))
+        containerImageView.layer.cornerRadius  = CGRectGetWidth(self.bounds)/2.0
+        containerImageView.layer.masksToBounds = false
+        containerImageView.clipsToBounds       = true
+        containerImageView.contentMode         = UIViewContentMode.ScaleAspectFill
         
-        self.progressContainer.layer.addSublayer(self.backgroundLayer)
-        self.progressContainer.layer.addSublayer(self.progressLayer)
+        progressContainer.layer.addSublayer(backgroundLayer)
+        progressContainer.layer.addSublayer(progressLayer)
         
-        self.addSubview(self.containerImageView)
-        self.addSubview(self.progressContainer)
+        self.addSubview(containerImageView)
+        self.addSubview(progressContainer)
         self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: "handleSingleTap:"))
         
     }
@@ -126,28 +126,28 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     }
     
     func backgroundProgressColor(color: UIColor) {
-        self.backgroundProgressColor        = color
-        self.backgroundLayer.strokeColor    = self.backgroundProgressColor.CGColor
+        backgroundProgressColor        = color
+        backgroundLayer.strokeColor    = self.backgroundProgressColor.CGColor
     }
     
     func progressColor(color: UIColor) {
-        self.progressColor              = color
-        self.progressLayer.strokeColor  = self.progressColor.CGColor
+        progressColor              = color
+        progressLayer.strokeColor  = self.progressColor.CGColor
     }
     
     func placeHolderImage(image: UIImage) {
-        self.placeHolderImage = image
-        if self.containerImageView.image == nil {
-            self.containerImageView.image = image
+        placeHolderImage = image
+        if containerImageView.image == nil {
+            containerImageView.image = image
         }
     }
     
     func imageURL(URL: NSURL) {
         let urlRequest = NSURLRequest(URL: URL)
-        var cachedImage = (self.cacheEnabled) ? self.cache.imageForURL(URL) : nil
+        var cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
         
         if cachedImage {
-            self.updateImage(cachedImage!, animated: false)
+            updateImage(cachedImage!, animated: false)
         } else {
             let session = NSURLSession(configuration: NSURLSessionConfiguration.defaultSessionConfiguration(), delegate: self, delegateQueue: nil)
             let downloadTask = session.downloadTaskWithRequest(urlRequest)
@@ -160,8 +160,8 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         dispatch_async(dispatch_get_main_queue(), {
             self.updateImage(image , animated: true)
         })
-        if self.cacheEnabled {
-            self.cache.image(image, URL: downloadTask.response.URL)
+        if cacheEnabled {
+            cache.image(image, URL: downloadTask.response.URL)
         }
         
     }
@@ -179,9 +179,9 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         let duration    = (animated) ? 0.3 : 0.0
         let delay       = (animated) ? 0.1 : 0.0
 
-        self.containerImageView.transform   = CGAffineTransformMakeScale(0, 0)
-        self.containerImageView.alpha       = 0.0
-        self.containerImageView.image       = image
+        containerImageView.transform   = CGAffineTransformMakeScale(0, 0)
+        containerImageView.alpha       = 0.0
+        containerImageView.image       = image
         
         UIView.animateWithDuration(duration, animations: {
             self.progressContainer.transform    = CGAffineTransformMakeScale(1.1, 1.1);
