@@ -12,7 +12,7 @@
 		EE906CE119A689870004019D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EE906CDF19A689870004019D /* Main.storyboard */; };
 		EE906CE319A689870004019D /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE906CE219A689870004019D /* Images.xcassets */; };
 		EE906CEF19A689870004019D /* ExampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE906CEE19A689870004019D /* ExampleTests.swift */; };
-		EE906CF919A68A150004019D /* PASImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE906CF819A68A150004019D /* PASImageView.swift */; };
+		EE906D0119A68E590004019D /* PASImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE906D0019A68E590004019D /* PASImageView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,7 +35,7 @@
 		EE906CE819A689870004019D /* ExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE906CED19A689870004019D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EE906CEE19A689870004019D /* ExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleTests.swift; sourceTree = "<group>"; };
-		EE906CF819A68A150004019D /* PASImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PASImageView.swift; sourceTree = "<group>"; };
+		EE906D0019A68E590004019D /* PASImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PASImageView.swift; path = ../PASImageView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +59,7 @@
 		EE906CCD19A689870004019D = {
 			isa = PBXGroup;
 			children = (
+				EE906D0019A68E590004019D /* PASImageView.swift */,
 				EE906CD819A689870004019D /* Example */,
 				EE906CEB19A689870004019D /* ExampleTests */,
 				EE906CD719A689870004019D /* Products */,
@@ -77,7 +78,6 @@
 		EE906CD819A689870004019D /* Example */ = {
 			isa = PBXGroup;
 			children = (
-				EE906CF819A68A150004019D /* PASImageView.swift */,
 				EE906CDB19A689870004019D /* AppDelegate.swift */,
 				EE906CDD19A689870004019D /* ViewController.swift */,
 				EE906CDF19A689870004019D /* Main.storyboard */,
@@ -211,7 +211,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EE906CF919A68A150004019D /* PASImageView.swift in Sources */,
+				EE906D0119A68E590004019D /* PASImageView.swift in Sources */,
 				EE906CDE19A689870004019D /* ViewController.swift in Sources */,
 				EE906CDC19A689870004019D /* AppDelegate.swift in Sources */,
 			);
