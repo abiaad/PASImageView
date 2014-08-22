@@ -21,12 +21,12 @@ class SPMImageCache : NSObject {
     var cachePath = String()
     let fileManager = NSFileManager.defaultManager()
     
-    init() {
+    override init() {
         let paths = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.CachesDirectory, NSSearchPathDomainMask.UserDomainMask, true)
         let rootCachePath : AnyObject = paths[0]
         
         cachePath = rootCachePath.stringByAppendingPathComponent(spm_identifier)
-
+        
         if !fileManager.fileExistsAtPath(cachePath) {
             fileManager.createDirectoryAtPath(cachePath, withIntermediateDirectories: false, attributes: nil, error: nil)
         }
@@ -69,12 +69,16 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     var cache                       = SPMImageCache()
     var delegate                    :PASImageViewDelegate?
     
+    required init(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+    }
+    
     convenience init(frame: CGRect, delegate: PASImageViewDelegate) {
         self.init(frame: frame)
         self.delegate = delegate
     }
     
-    init(frame: CGRect) {
+    override init(frame: CGRect) {
         super.init(frame: frame)
         
         self.layer.cornerRadius         = CGRectGetWidth(self.bounds)/2.0
@@ -85,8 +89,11 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         println(CGRectGetMidX(self.bounds))
         let arcCenter   = CGPoint(x: CGRectGetMidX(self.bounds), y: CGRectGetMidY(self.bounds))
         let radius      = Float(min(CGRectGetMidX(self.bounds) - 1, CGRectGetMidY(self.bounds)-1))
-        let circlePath  = UIBezierPath(arcCenter: arcCenter, radius: radius, startAngle: -rad(90), endAngle: rad(360-90), clockwise: true)
-        
+        let circlePath = UIBezierPath(arcCenter: arcCenter,
+            radius: CGFloat(radius),
+            startAngle: CGFloat(-rad(Float(90))),
+            endAngle: CGFloat(rad(360-90)),
+            clockwise: true)
         
         backgroundLayer.path           = circlePath.CGPath
         backgroundLayer.strokeColor    = backgroundProgressColor.CGColor
@@ -146,7 +153,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         let urlRequest = NSURLRequest(URL: URL)
         var cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
         
-        if cachedImage {
+        if (cachedImage != nil) {
             updateImage(cachedImage!, animated: false)
         } else {
             let session = NSURLSession(configuration: NSURLSessionConfiguration.defaultSessionConfiguration(), delegate: self, delegateQueue: nil)
@@ -155,7 +162,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         }
     }
     
-   func URLSession(session: NSURLSession!, downloadTask: NSURLSessionDownloadTask!, didFinishDownloadingToURL location: NSURL!) {
+    func URLSession(session: NSURLSession!, downloadTask: NSURLSessionDownloadTask!, didFinishDownloadingToURL location: NSURL!) {
         let image = UIImage(data: NSData(contentsOfURL: location))
         dispatch_async(dispatch_get_main_queue(), {
             self.updateImage(image , animated: true)
@@ -165,38 +172,38 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         }
         
     }
-
+    
     func URLSession(session: NSURLSession!, downloadTask: NSURLSessionDownloadTask!, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         
-        let progress: Float = Float(totalBytesWritten)/Float(totalBytesExpectedToWrite)
+        let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
         dispatch_async(dispatch_get_main_queue(), {
-            self.progressLayer.strokeEnd        = progress;
-            self.backgroundLayer.strokeStart    = progress;
+            self.progressLayer.strokeEnd        = progress
+            self.backgroundLayer.strokeStart    = progress
         })
     }
     
     func updateImage(image: UIImage, animated: Bool) {
         let duration    = (animated) ? 0.3 : 0.0
         let delay       = (animated) ? 0.1 : 0.0
-
+        
         containerImageView.transform   = CGAffineTransformMakeScale(0, 0)
         containerImageView.alpha       = 0.0
         containerImageView.image       = image
         
         UIView.animateWithDuration(duration, animations: {
-            self.progressContainer.transform    = CGAffineTransformMakeScale(1.1, 1.1);
-            self.progressContainer.alpha        = 0.0;
+            self.progressContainer.transform    = CGAffineTransformMakeScale(1.1, 1.1)
+            self.progressContainer.alpha        = 0.0
             UIView.animateWithDuration(duration, delay: delay, options: UIViewAnimationOptions.CurveEaseOut, animations: {
-                self.containerImageView.transform   = CGAffineTransformIdentity;
-                self.containerImageView.alpha       = 1.0;
+                self.containerImageView.transform   = CGAffineTransformIdentity
+                self.containerImageView.alpha       = 1.0
                 }, completion: nil)
             }, completion: { finished in
                 self.progressLayer.strokeColor = self.backgroundProgressColor.CGColor
                 UIView.animateWithDuration(duration, animations: {
-                    self.progressContainer.transform    = CGAffineTransformIdentity;
-                    self.progressContainer.alpha        = 1.0;
-                    })
-            })
+                    self.progressContainer.transform    = CGAffineTransformIdentity
+                    self.progressContainer.alpha        = 1.0
+                })
+        })
     }
     
 }
