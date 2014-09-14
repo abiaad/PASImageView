@@ -162,15 +162,16 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         }
     }
     
-    func URLSession(session: NSURLSession!, downloadTask: NSURLSessionDownloadTask!, didFinishDownloadingToURL location: NSURL!) {
+    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
         let image = UIImage(data: NSData(contentsOfURL: location))
         dispatch_async(dispatch_get_main_queue(), {
             self.updateImage(image , animated: true)
         })
         if cacheEnabled {
-            cache.image(image, URL: downloadTask.response.URL)
+            if let url = downloadTask.response?.URL {
+                cache.image(image, URL: url)
+            }
         }
-        
     }
     
     func URLSession(session: NSURLSession!, downloadTask: NSURLSessionDownloadTask!, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
