@@ -14,7 +14,7 @@
 ```swift
 var imageView = PASImageView(frame: aFrame)
 imageView.backgroundProgressColor(UIColor.whiteColor())
-imageView.progressColor(UIColor(UIColor.redColor())
+imageView.progressColor(UIColor.redColor())
 self.view.addSubview(imageView)
 // Later
  imageView.imageURL(anURL)
