@@ -42,15 +42,20 @@ class SPMImageCache : NSObject {
         } else if fileExtension == "jpg" || fileExtension == "jpeg" {
             imageData = UIImageJPEGRepresentation(image, 1.0)
         }
-        
-        imageData.writeToFile(self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
+
+        if let fileExtension = fileExtension {
+            imageData.writeToFile(self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
+        }
     }
     
     func imageForURL(URL: NSURL) -> UIImage? {
-        let fileExtension = URL.pathExtension
-        let path = self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension))
-        if self.fileManager.fileExistsAtPath(path) {
-            return UIImage(data: NSData(contentsOfFile: path))
+        if let fileExtension = URL.pathExtension {
+            let path = self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension))
+            if self.fileManager.fileExistsAtPath(path) {
+                if let data = NSData(contentsOfFile: path) {
+                    return UIImage(data: data)
+                }
+            }
         }
         return nil
     }
@@ -196,13 +201,16 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     }
     
     func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
-        let image = UIImage(data: NSData(contentsOfURL: location))
-        dispatch_async(dispatch_get_main_queue(), {
-            self.updateImage(image , animated: true)
-        })
-        if cacheEnabled {
-            if let url = downloadTask.response?.URL {
-                cache.image(image, URL: url)
+        if let data = NSData(contentsOfURL: location) {
+            if let image = UIImage(data: data) {
+                dispatch_async(dispatch_get_main_queue(), {
+                    self.updateImage(image , animated: true)
+                })
+                if cacheEnabled {
+                    if let url = downloadTask.response?.URL {
+                        cache.image(image, URL: url)
+                    }
+                }
             }
         }
     }

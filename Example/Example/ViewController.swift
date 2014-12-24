@@ -20,8 +20,9 @@ class ViewController: UIViewController {
         imageView.progressColor(UIColor.redColor())
         view.addSubview(imageView)
 
-        let anURL = NSURL(string: "http://upload.wikimedia.org/wikipedia/commons/e/e6/Batman_cossplay.JPG")
-        imageView.imageURL(anURL)
+        if let anURL = NSURL(string: "http://upload.wikimedia.org/wikipedia/commons/e/e6/Batman_cossplay.JPG") {
+            imageView.imageURL(anURL)
+        }
     }
 
     override func didReceiveMemoryWarning() {
