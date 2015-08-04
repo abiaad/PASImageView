@@ -83,7 +83,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         self.delegate = delegate
     }
     
-    convenience override init() {
+    convenience init() {
         self.init(frame: CGRectZero)
     }
     
@@ -215,7 +215,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         }
     }
     
-    func URLSession(session: NSURLSession!, downloadTask: NSURLSessionDownloadTask!, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         
         let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
         dispatch_async(dispatch_get_main_queue(), {
