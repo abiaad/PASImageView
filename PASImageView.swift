@@ -9,7 +9,7 @@
 import UIKit
 import QuartzCore
 
-let spm_identifier  = "spm.imagecache.tg"
+let spm_identifier  = "pas.imagecache.tg"
 let kLineWidth      :CGFloat = 3.0
 
 func rad(degrees : Float) -> Float {
@@ -28,24 +28,29 @@ class SPMImageCache : NSObject {
         cachePath = rootCachePath.stringByAppendingPathComponent(spm_identifier)
         
         if !fileManager.fileExistsAtPath(cachePath) {
-            fileManager.createDirectoryAtPath(cachePath, withIntermediateDirectories: false, attributes: nil, error: nil)
+            do {
+                try fileManager.createDirectoryAtPath(cachePath, withIntermediateDirectories: false, attributes: nil)
+            } catch let error as NSError {
+                print(error)
+            }
         }
         super.init()
     }
     
     func image(image: UIImage, URL: NSURL) {
-        var imageData :NSData = NSData()
-        let fileExtension = URL.pathExtension
+        var data : NSData?
+        
+        guard let fileExtension = URL.pathExtension else { return }
         
         if fileExtension == "png" {
-            imageData = UIImagePNGRepresentation(image)
+            data = UIImagePNGRepresentation(image)
         } else if fileExtension == "jpg" || fileExtension == "jpeg" {
-            imageData = UIImageJPEGRepresentation(image, 1.0)
+            data = UIImageJPEGRepresentation(image, 1.0)
         }
+        
+        guard let imageData = data else { return }
+        imageData.writeToFile(self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
 
-        if let fileExtension = fileExtension {
-            imageData.writeToFile(self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
-        }
     }
     
     func imageForURL(URL: NSURL) -> UIImage? {
@@ -74,7 +79,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     var cache                       = SPMImageCache()
     var delegate                    :PASImageViewDelegate?
     
-    required init(coder aDecoder: NSCoder) {
+    required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
     
@@ -142,14 +147,15 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     func setConstraints() {
         
         // containerImageView
-        containerImageView.setTranslatesAutoresizingMaskIntoConstraints(false)
+        containerImageView.translatesAutoresizingMaskIntoConstraints = false
         self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: -2))
         self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: -2))
         self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
         self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
         
         // progressContainer
-        progressContainer.setTranslatesAutoresizingMaskIntoConstraints(false)
+    
+        progressContainer.translatesAutoresizingMaskIntoConstraints = false
         self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: 0))
         self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: 0))
         self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
@@ -188,7 +194,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     
     func imageURL(URL: NSURL) {
         let urlRequest = NSURLRequest(URL: URL)
-        var cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
+        let cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
         
         if (cachedImage != nil) {
             updateImage(cachedImage!, animated: false)
@@ -216,7 +222,6 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     }
     
     func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        
         let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
         dispatch_async(dispatch_get_main_queue(), {
             self.progressLayer.strokeEnd        = progress
@@ -249,9 +254,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
                 })
         })
     }
-    
 
-    
 }
 
 protocol PASImageViewDelegate {
