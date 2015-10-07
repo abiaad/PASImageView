@@ -17,7 +17,7 @@ func rad(degrees : Float) -> Float {
 }
 
 
-class SPMImageCache : NSObject {
+final class SPMImageCache : NSObject {
     var cachePath = String()
     let fileManager = NSFileManager.defaultManager()
     
@@ -49,13 +49,13 @@ class SPMImageCache : NSObject {
         }
         
         guard let imageData = data else { return }
-        imageData.writeToFile(self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
+        imageData.writeToFile((self.cachePath as NSString).stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
 
     }
     
     func imageForURL(URL: NSURL) -> UIImage? {
         if let fileExtension = URL.pathExtension {
-            let path = self.cachePath.stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension))
+            let path = (self.cachePath as NSString).stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension))
             if self.fileManager.fileExistsAtPath(path) {
                 if let data = NSData(contentsOfFile: path) {
                     return UIImage(data: data)
@@ -67,20 +67,39 @@ class SPMImageCache : NSObject {
 }
 
 
+@IBDesignable
 class PASImageView : UIView, NSURLSessionDownloadDelegate {
+    
+    @IBInspectable var backgroundProgressColor : UIColor  = UIColor.blackColor() {
+        didSet { backgroundLayer.strokeColor = backgroundProgressColor.CGColor }
+    }
+    
+    @IBInspectable var progressColor : UIColor  = UIColor.redColor() {
+        didSet { progressLayer.strokeColor = progressColor.CGColor }
+    }
+    
+    @IBInspectable var placeHolderImage : UIImage? {
+        didSet {
+            if containerImageView.image == nil {
+            containerImageView.image = placeHolderImage
+            }
+        }
+    }
+    
     var cacheEnabled                = true
-    var placeHolderImage            = UIImage()
-    var backgroundProgressColor     = UIColor.blackColor()
-    var progressColor               = UIColor.redColor()
-    var backgroundLayer             = CAShapeLayer()
-    var progressLayer               = CAShapeLayer()
-    var containerImageView          = UIImageView()
-    var progressContainer           = UIView()
-    var cache                       = SPMImageCache()
     var delegate                    :PASImageViewDelegate?
     
+    private var backgroundLayer             = CAShapeLayer()
+    private var progressLayer               = CAShapeLayer()
+    private var containerImageView          = UIImageView()
+    private var progressContainer           = UIView()
+    private var cache                       = SPMImageCache()
+    
+    //MARK:- Initialization implemention
+
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
+        self.setupView()
     }
     
     convenience init(frame: CGRect, delegate: PASImageViewDelegate) {
@@ -88,13 +107,46 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         self.delegate = delegate
     }
     
-    convenience init() {
-        self.init(frame: CGRectZero)
-    }
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
+        self.setupView()
+    }
+    
+    override func layoutSubviews() {
+        self.layer.cornerRadius = self.bounds.width/2.0
+        progressContainer.layer.cornerRadius = self.bounds.width/2.0
+        containerImageView.layer.cornerRadius = self.bounds.width/2.0
         
+        updatePaths()
+    }
+    
+    
+    //MARK:- Private methods
+
+    private func handleSingleTap(gesture: UIGestureRecognizer) {
+        delegate?.PAImageView(didTapped: self)
+    }
+    
+    private func setConstraints() {
+        
+        // containerImageView
+        containerImageView.translatesAutoresizingMaskIntoConstraints = false
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: -2))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: -2))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
+        
+        // progressContainer
+        
+        progressContainer.translatesAutoresizingMaskIntoConstraints = false
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
+        
+    }
+    
+    private func setupView() {
         self.layer.masksToBounds        = false
         self.clipsToBounds              = true
         
@@ -127,111 +179,12 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: "handleSingleTap:"))
         
         setConstraints()
-        
-    }
-    
-    func updatePaths() {
-        let arcCenter   = CGPoint(x: CGRectGetMidX(self.bounds), y: CGRectGetMidY(self.bounds))
-        let radius      = Float(min(CGRectGetMidX(self.bounds) - 1, CGRectGetMidY(self.bounds)-1))
-        let circlePath = UIBezierPath(arcCenter: arcCenter,
-            radius: CGFloat(radius),
-            startAngle: CGFloat(-rad(Float(90))),
-            endAngle: CGFloat(rad(360-90)),
-            clockwise: true)
-        
-        backgroundLayer.path           = circlePath.CGPath
-        progressLayer.path             = backgroundLayer.path
-        
-    }
-    
-    func setConstraints() {
-        
-        // containerImageView
-        containerImageView.translatesAutoresizingMaskIntoConstraints = false
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: -2))
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: -2))
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
-        
-        // progressContainer
-    
-        progressContainer.translatesAutoresizingMaskIntoConstraints = false
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
-        
-    }
-    
-    override func layoutSubviews() {
-        self.layer.cornerRadius = self.bounds.width/2.0
-        progressContainer.layer.cornerRadius = self.bounds.width/2.0
-        containerImageView.layer.cornerRadius = self.bounds.width/2.0
-        
-        updatePaths()
-    }
-    
-    func handleSingleTap(gesture: UIGestureRecognizer) {
-        delegate?.PAImageView(didTapped: self)
-    }
-    
-    func backgroundProgressColor(color: UIColor) {
-        backgroundProgressColor        = color
-        backgroundLayer.strokeColor    = self.backgroundProgressColor.CGColor
-    }
-    
-    func progressColor(color: UIColor) {
-        progressColor              = color
-        progressLayer.strokeColor  = self.progressColor.CGColor
-    }
-    
-    func placeHolderImage(image: UIImage) {
-        placeHolderImage = image
-        if containerImageView.image == nil {
-            containerImageView.image = image
-        }
-    }
-    
-    func imageURL(URL: NSURL) {
-        let urlRequest = NSURLRequest(URL: URL)
-        let cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
-        
-        if (cachedImage != nil) {
-            updateImage(cachedImage!, animated: false)
-        } else {
-            let session = NSURLSession(configuration: NSURLSessionConfiguration.defaultSessionConfiguration(), delegate: self, delegateQueue: nil)
-            let downloadTask = session.downloadTaskWithRequest(urlRequest)
-            downloadTask.resume()
-        }
 
     }
     
-    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
-        if let data = NSData(contentsOfURL: location) {
-            if let image = UIImage(data: data) {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.updateImage(image , animated: true)
-                })
-                if cacheEnabled {
-                    if let url = downloadTask.response?.URL {
-                        cache.image(image, URL: url)
-                    }
-                }
-            }
-        }
-    }
-    
-    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
-        dispatch_async(dispatch_get_main_queue(), {
-            self.progressLayer.strokeEnd        = progress
-            self.backgroundLayer.strokeStart    = progress
-        })
-    }
-    
-    func updateImage(image: UIImage, animated: Bool) {
+    private func updateImage(image: UIImage, animated: Bool) {
         
-  
+        
         let duration    = (animated) ? 0.3 : 0.0
         let delay       = (animated) ? 0.1 : 0.0
         
@@ -255,7 +208,64 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         })
     }
 
+    private func updatePaths() {
+        let arcCenter   = CGPoint(x: CGRectGetMidX(self.bounds), y: CGRectGetMidY(self.bounds))
+        let radius      = Float(min(CGRectGetMidX(self.bounds) - 1, CGRectGetMidY(self.bounds)-1))
+        let circlePath = UIBezierPath(arcCenter: arcCenter,
+            radius: CGFloat(radius),
+            startAngle: CGFloat(-rad(Float(90))),
+            endAngle: CGFloat(rad(360-90)),
+            clockwise: true)
+        
+        backgroundLayer.path           = circlePath.CGPath
+        progressLayer.path             = backgroundLayer.path
+        
+    }
+    
+    //MARK:- Public methods
+
+    func imageURL(URL: NSURL) {
+        let urlRequest = NSURLRequest(URL: URL)
+        let cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
+        
+        if (cachedImage != nil) {
+            updateImage(cachedImage!, animated: false)
+        } else {
+            let session = NSURLSession(configuration: NSURLSessionConfiguration.defaultSessionConfiguration(), delegate: self, delegateQueue: nil)
+            let downloadTask = session.downloadTaskWithRequest(urlRequest)
+            downloadTask.resume()
+        }
+
+    }
+    
+    //MARK:- NSURLSessionDownloadDelegate implemention
+    
+    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
+        if let data = NSData(contentsOfURL: location) {
+            if let image = UIImage(data: data) {
+                dispatch_async(dispatch_get_main_queue(), {
+                    self.updateImage(image , animated: true)
+                })
+                if cacheEnabled {
+                    if let url = downloadTask.response?.URL {
+                        cache.image(image, URL: url)
+                    }
+                }
+            }
+        }
+    }
+    
+    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
+        dispatch_async(dispatch_get_main_queue(), {
+            self.progressLayer.strokeEnd        = progress
+            self.backgroundLayer.strokeStart    = progress
+        })
+    }
+
 }
+
+//MARK:- PASImageViewDelegate
 
 protocol PASImageViewDelegate {
     
