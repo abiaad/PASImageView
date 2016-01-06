@@ -37,11 +37,10 @@ final class SPMImageCache : NSObject {
         super.init()
     }
     
-    func image(image: UIImage, URL: NSURL) {
+    func image(image: UIImage?, URL: NSURL) {
+        guard let image = image, fileExtension = URL.pathExtension else { return }
+
         var data : NSData?
-        
-        guard let fileExtension = URL.pathExtension else { return }
-        
         if fileExtension == "png" {
             data = UIImagePNGRepresentation(image)
         } else if fileExtension == "jpg" || fileExtension == "jpeg" {
@@ -182,7 +181,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
 
     }
     
-    private func updateImage(image: UIImage, animated: Bool) {
+    private func updateImage(image: UIImage?, animated: Bool) {
         
         
         let duration    = (animated) ? 0.3 : 0.0
@@ -190,7 +189,9 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         
         containerImageView.transform   = CGAffineTransformMakeScale(0, 0)
         containerImageView.alpha       = 0.0
-        containerImageView.image       = image
+        if let image = image {
+            containerImageView.image = image
+        }
         
         UIView.animateWithDuration(duration, animations: {
             self.progressContainer.transform    = CGAffineTransformMakeScale(1.1, 1.1)
@@ -219,9 +220,8 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         
         backgroundLayer.path           = circlePath.CGPath
         progressLayer.path             = backgroundLayer.path
-        
     }
-    
+
     //MARK:- Public methods
 
     func imageURL(URL: NSURL) {
@@ -242,7 +242,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     
     func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
         if let data = NSData(contentsOfURL: location) {
-            if let image = UIImage(data: data) {
+            let image = UIImage(data: data)
                 dispatch_async(dispatch_get_main_queue(), {
                     self.updateImage(image , animated: true)
                 })
@@ -251,7 +251,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
                         cache.image(image, URL: url)
                     }
                 }
-            }
+            
         }
     }
     
@@ -268,7 +268,6 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
 //MARK:- PASImageViewDelegate
 
 protocol PASImageViewDelegate {
-    
     func PAImageView(didTapped imageView: PASImageView)
 }
 
