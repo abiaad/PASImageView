@@ -39,7 +39,7 @@ final class SPMImageCache : NSObject {
     
     func image(image: UIImage?, URL: NSURL) {
         guard let image = image, fileExtension = URL.pathExtension else { return }
-
+        
         var data : NSData?
         if fileExtension == "png" {
             data = UIImagePNGRepresentation(image)
@@ -49,7 +49,7 @@ final class SPMImageCache : NSObject {
         
         guard let imageData = data else { return }
         imageData.writeToFile((self.cachePath as NSString).stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
-
+        
     }
     
     func imageForURL(URL: NSURL) -> UIImage? {
@@ -67,26 +67,26 @@ final class SPMImageCache : NSObject {
 
 
 @IBDesignable
-class PASImageView : UIView, NSURLSessionDownloadDelegate {
+public class PASImageView : UIView, NSURLSessionDownloadDelegate {
     
-    @IBInspectable var backgroundProgressColor : UIColor  = UIColor.blackColor() {
+    @IBInspectable public var backgroundProgressColor : UIColor  = UIColor.blackColor() {
         didSet { backgroundLayer.strokeColor = backgroundProgressColor.CGColor }
     }
     
-    @IBInspectable var progressColor : UIColor  = UIColor.redColor() {
+    @IBInspectable public var progressColor : UIColor  = UIColor.redColor() {
         didSet { progressLayer.strokeColor = progressColor.CGColor }
     }
     
-    @IBInspectable var placeHolderImage : UIImage? {
+    @IBInspectable public var placeHolderImage : UIImage? {
         didSet {
             if containerImageView.image == nil {
-            containerImageView.image = placeHolderImage
+                containerImageView.image = placeHolderImage
             }
         }
     }
     
-    var cacheEnabled                = true
-    var delegate                    :PASImageViewDelegate?
+    public var cacheEnabled                = true
+    public var delegate                    :PASImageViewDelegate?
     
     private var backgroundLayer             = CAShapeLayer()
     private var progressLayer               = CAShapeLayer()
@@ -95,23 +95,23 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     private var cache                       = SPMImageCache()
     
     //MARK:- Initialization implemention
-
-    required init?(coder aDecoder: NSCoder) {
+    
+    required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         self.setupView()
     }
     
-    convenience init(frame: CGRect, delegate: PASImageViewDelegate) {
+    public convenience init(frame: CGRect, delegate: PASImageViewDelegate) {
         self.init(frame: frame)
         self.delegate = delegate
     }
     
-    override init(frame: CGRect) {
+    public override init(frame: CGRect) {
         super.init(frame: frame)
         self.setupView()
     }
     
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         self.layer.cornerRadius = self.bounds.width/2.0
         progressContainer.layer.cornerRadius = self.bounds.width/2.0
         containerImageView.layer.cornerRadius = self.bounds.width/2.0
@@ -121,7 +121,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
     
     
     //MARK:- Private methods
-
+    
     private func handleSingleTap(gesture: UIGestureRecognizer) {
         delegate?.PAImageView(didTapped: self)
     }
@@ -178,7 +178,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: "handleSingleTap:"))
         
         setConstraints()
-
+        
     }
     
     private func updateImage(image: UIImage?, animated: Bool) {
@@ -208,7 +208,7 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
                 })
         })
     }
-
+    
     private func updatePaths() {
         let arcCenter   = CGPoint(x: CGRectGetMidX(self.bounds), y: CGRectGetMidY(self.bounds))
         let radius      = Float(min(CGRectGetMidX(self.bounds) - 1, CGRectGetMidY(self.bounds)-1))
@@ -221,10 +221,10 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
         backgroundLayer.path           = circlePath.CGPath
         progressLayer.path             = backgroundLayer.path
     }
-
+    
     //MARK:- Public methods
-
-    func imageURL(URL: NSURL) {
+    
+    public func imageURL(URL: NSURL) {
         let urlRequest = NSURLRequest(URL: URL)
         let cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
         
@@ -235,40 +235,38 @@ class PASImageView : UIView, NSURLSessionDownloadDelegate {
             let downloadTask = session.downloadTaskWithRequest(urlRequest)
             downloadTask.resume()
         }
-
+        
     }
     
     //MARK:- NSURLSessionDownloadDelegate implemention
     
-    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
+    public func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
         if let data = NSData(contentsOfURL: location) {
             let image = UIImage(data: data)
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.updateImage(image , animated: true)
-                })
-                if cacheEnabled {
-                    if let url = downloadTask.response?.URL {
-                        cache.image(image, URL: url)
-                    }
+            dispatch_async(dispatch_get_main_queue(), {
+                self.updateImage(image , animated: true)
+            })
+            if cacheEnabled {
+                if let url = downloadTask.response?.URL {
+                    cache.image(image, URL: url)
                 }
+            }
             
         }
     }
     
-    func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+    public func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
         dispatch_async(dispatch_get_main_queue(), {
             self.progressLayer.strokeEnd        = progress
             self.backgroundLayer.strokeStart    = progress
         })
     }
-
+    
 }
 
 //MARK:- PASImageViewDelegate
 
-protocol PASImageViewDelegate {
+public protocol PASImageViewDelegate {
     func PAImageView(didTapped imageView: PASImageView)
 }
-
-
