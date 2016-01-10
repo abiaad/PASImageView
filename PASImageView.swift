@@ -119,13 +119,14 @@ public class PASImageView : UIView, NSURLSessionDownloadDelegate {
         updatePaths()
     }
     
-    
-    //MARK:- Private methods
-    
-    private func handleSingleTap(gesture: UIGestureRecognizer) {
+    //MARK:- Obj-C action
+
+    func handleSingleTap(gesture: UIGestureRecognizer) {
         delegate?.PAImageView(didTapped: self)
     }
     
+    //MARK:- Private methods
+
     private func setConstraints() {
         
         // containerImageView
