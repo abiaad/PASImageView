@@ -1,7 +1,7 @@
 # PASImageView
 ============
 
-**Rounded async imageview downloader lightly cached and written in Swift 2.0 **
+**Rounded async imageview downloader lightly cached and written in Swift 3 **
 
 [Objective-C version here](https://github.com/abiaad/PAImageView)
 
