@@ -17,19 +17,20 @@ func rad(degrees : Float) -> Float {
 }
 
 
-final class SPMImageCache : NSObject {
-    var cachePath = String()
-    let fileManager = NSFileManager.defaultManager()
+final class ImageCache : NSObject {
+    var cachePath: URL?
+    let fileManager = FileManager.default
     
     override init() {
-        let paths = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.CachesDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-        let rootCachePath : AnyObject = paths[0]
+        let paths = NSSearchPathForDirectoriesInDomains(FileManager.SearchPathDirectory.cachesDirectory, FileManager.SearchPathDomainMask.userDomainMask, true) 
+        let rootCachePath = paths[0]
         
-        cachePath = rootCachePath.stringByAppendingPathComponent(spm_identifier)
         
-        if !fileManager.fileExistsAtPath(cachePath) {
+        cachePath = URL(string: rootCachePath)?.appendingPathComponent(spm_identifier)
+        
+        if let path = cachePath, !fileManager.fileExists(atPath:path.absoluteString) {
             do {
-                try fileManager.createDirectoryAtPath(cachePath, withIntermediateDirectories: false, attributes: nil)
+                try fileManager.createDirectory(atPath: path.absoluteString, withIntermediateDirectories: false, attributes: nil)
             } catch let error as NSError {
                 print(error)
             }
@@ -37,28 +38,28 @@ final class SPMImageCache : NSObject {
         super.init()
     }
     
-    func image(image: UIImage?, URL: NSURL) {
-        guard let image = image, fileExtension = URL.pathExtension else { return }
+    func save(image: UIImage?, atURL URL: URL) {
+        guard let image = image else { return }
         
+        let fileExtension = URL.pathExtension
         var data : NSData?
         if fileExtension == "png" {
-            data = UIImagePNGRepresentation(image)
+            data = UIImagePNGRepresentation(image) as NSData?
         } else if fileExtension == "jpg" || fileExtension == "jpeg" {
-            data = UIImageJPEGRepresentation(image, 1.0)
+            data = UIImageJPEGRepresentation(image, 1.0) as NSData?
         }
         
-        guard let imageData = data else { return }
-        imageData.writeToFile((self.cachePath as NSString).stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension)), atomically: true)
+        guard let imageData = data, let cachePath = self.cachePath else { return }
+        imageData.write(toFile: cachePath.appendingPathComponent(String(format: "%u.%@", URL.absoluteString.hash, fileExtension)).absoluteString, atomically: true)
         
     }
     
-    func imageForURL(URL: NSURL) -> UIImage? {
-        if let fileExtension = URL.pathExtension {
-            let path = (self.cachePath as NSString).stringByAppendingPathComponent(String(format: "%u.%@", URL.hash, fileExtension))
-            if self.fileManager.fileExistsAtPath(path) {
-                if let data = NSData(contentsOfFile: path) {
-                    return UIImage(data: data)
-                }
+    func image(forURL URL: URL) -> UIImage? {
+        if  let path = self.cachePath?.appendingPathComponent(String(format: "%u.%@", URL.absoluteString.hash, URL.pathExtension)),
+            self.fileManager.fileExists(atPath: path.absoluteString) {
+            
+            if let data = NSData(contentsOfFile: path.absoluteString) {
+                return UIImage(data: data as Data)
             }
         }
         return nil
@@ -67,14 +68,14 @@ final class SPMImageCache : NSObject {
 
 
 @IBDesignable
-public class PASImageView : UIView, NSURLSessionDownloadDelegate {
+public class PASImageView : UIView, URLSessionDownloadDelegate {
     
-    @IBInspectable public var backgroundProgressColor : UIColor  = UIColor.blackColor() {
-        didSet { backgroundLayer.strokeColor = backgroundProgressColor.CGColor }
+    @IBInspectable public var backgroundProgressColor : UIColor  = UIColor.black {
+        didSet { backgroundLayer.strokeColor = backgroundProgressColor.cgColor }
     }
     
-    @IBInspectable public var progressColor : UIColor  = UIColor.redColor() {
-        didSet { progressLayer.strokeColor = progressColor.CGColor }
+    @IBInspectable public var progressColor : UIColor  = UIColor.red {
+        didSet { progressLayer.strokeColor = progressColor.cgColor }
     }
     
     @IBInspectable public var placeHolderImage : UIImage? {
@@ -92,7 +93,7 @@ public class PASImageView : UIView, NSURLSessionDownloadDelegate {
     private var progressLayer               = CAShapeLayer()
     private var containerImageView          = UIImageView()
     private var progressContainer           = UIView()
-    private var cache                       = SPMImageCache()
+    private var cache                       = ImageCache()
     
     //MARK:- Initialization implemention
     
@@ -119,7 +120,7 @@ public class PASImageView : UIView, NSURLSessionDownloadDelegate {
         updatePaths()
     }
     
-    //MARK:- Obj-C action
+    //MARK:- Action
 
     func handleSingleTap(gesture: UIGestureRecognizer) {
         delegate?.PAImageView(didTapped: self)
@@ -131,18 +132,18 @@ public class PASImageView : UIView, NSURLSessionDownloadDelegate {
         
         // containerImageView
         containerImageView.translatesAutoresizingMaskIntoConstraints = false
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: -2))
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: -2))
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .width, relatedBy: .equal, toItem: self, attribute: .width, multiplier: 1, constant: -2))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .height, relatedBy: .equal, toItem: self, attribute: .height, multiplier: 1, constant: -2))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .centerX, relatedBy: .equal, toItem: self, attribute: .centerX, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: containerImageView, attribute: .centerY, relatedBy: .equal, toItem: self, attribute: .centerY, multiplier: 1, constant: 0))
         
         // progressContainer
         
         progressContainer.translatesAutoresizingMaskIntoConstraints = false
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Width, relatedBy: .Equal, toItem: self, attribute: .Width, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .Height, relatedBy: .Equal, toItem: self, attribute: .Height, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterX, relatedBy: .Equal, toItem: self, attribute: .CenterX, multiplier: 1, constant: 0))
-        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .CenterY, relatedBy: .Equal, toItem: self, attribute: .CenterY, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .width, relatedBy: .equal, toItem: self, attribute: .width, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .height, relatedBy: .equal, toItem: self, attribute: .height, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .centerX, relatedBy: .equal, toItem: self, attribute: .centerX, multiplier: 1, constant: 0))
+        self.addConstraint(NSLayoutConstraint(item: progressContainer, attribute: .centerY, relatedBy: .equal, toItem: self, attribute: .centerY, multiplier: 1, constant: 0))
         
     }
     
@@ -152,11 +153,11 @@ public class PASImageView : UIView, NSURLSessionDownloadDelegate {
         
         updatePaths()
         
-        backgroundLayer.strokeColor    = backgroundProgressColor.CGColor
-        backgroundLayer.fillColor      = UIColor.clearColor().CGColor
+        backgroundLayer.strokeColor    = backgroundProgressColor.cgColor
+        backgroundLayer.fillColor      = UIColor.clear.cgColor
         backgroundLayer.lineWidth      = kLineWidth
         
-        progressLayer.strokeColor      = progressColor.CGColor
+        progressLayer.strokeColor      = progressColor.cgColor
         progressLayer.fillColor        = backgroundLayer.fillColor
         progressLayer.lineWidth        = backgroundLayer.lineWidth
         progressLayer.strokeEnd        = 0.0
@@ -164,105 +165,107 @@ public class PASImageView : UIView, NSURLSessionDownloadDelegate {
         progressContainer                      = UIView()
         progressContainer.layer.masksToBounds  = false
         progressContainer.clipsToBounds        = true
-        progressContainer.backgroundColor      = UIColor.clearColor()
+        progressContainer.backgroundColor      = UIColor.clear
         
         containerImageView                     = UIImageView()
         containerImageView.layer.masksToBounds = false
         containerImageView.clipsToBounds       = true
-        containerImageView.contentMode         = UIViewContentMode.ScaleAspectFill
+        containerImageView.contentMode         = .scaleAspectFill
         
         progressContainer.layer.addSublayer(backgroundLayer)
         progressContainer.layer.addSublayer(progressLayer)
         
         self.addSubview(containerImageView)
         self.addSubview(progressContainer)
-        self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: "handleSingleTap:"))
+        self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.handleSingleTap(gesture:))))
         
         setConstraints()
         
     }
     
-    private func updateImage(image: UIImage?, animated: Bool) {
+    private func update(image: UIImage?, animated: Bool) {
         
         
         let duration    = (animated) ? 0.3 : 0.0
         let delay       = (animated) ? 0.1 : 0.0
         
-        containerImageView.transform   = CGAffineTransformMakeScale(0, 0)
+        containerImageView.transform   = CGAffineTransform(scaleX: 0, y: 0)
         containerImageView.alpha       = 0.0
         if let image = image {
             containerImageView.image = image
         }
         
-        UIView.animateWithDuration(duration, animations: {
-            self.progressContainer.transform    = CGAffineTransformMakeScale(1.1, 1.1)
+        UIView.animate(withDuration: duration, animations: {
+            self.progressContainer.transform    = CGAffineTransform(scaleX: 1.1, y: 1.1)
             self.progressContainer.alpha        = 0.0
-            UIView.animateWithDuration(duration, delay: delay, options: UIViewAnimationOptions.CurveEaseOut, animations: {
-                self.containerImageView.transform   = CGAffineTransformIdentity
+            UIView.animate(withDuration: duration, delay: delay, options: [.curveEaseOut], animations: {
+                self.containerImageView.transform   = CGAffineTransform.identity
                 self.containerImageView.alpha       = 1.0
                 }, completion: nil)
             }, completion: { finished in
-                self.progressLayer.strokeColor = self.backgroundProgressColor.CGColor
-                UIView.animateWithDuration(duration, animations: {
-                    self.progressContainer.transform    = CGAffineTransformIdentity
+                self.progressLayer.strokeColor = self.backgroundProgressColor.cgColor
+                UIView.animate(withDuration: duration, animations: {
+                    self.progressContainer.transform    = CGAffineTransform.identity
                     self.progressContainer.alpha        = 1.0
                 })
         })
     }
     
     private func updatePaths() {
-        let arcCenter   = CGPoint(x: CGRectGetMidX(self.bounds), y: CGRectGetMidY(self.bounds))
-        let radius      = Float(min(CGRectGetMidX(self.bounds) - 1, CGRectGetMidY(self.bounds)-1))
+        let arcCenter   = CGPoint(x: self.bounds.midX, y: self.bounds.midY)
+        let radius      = Float(min(self.bounds.midX - 1, self.bounds.midY-1))
         let circlePath = UIBezierPath(arcCenter: arcCenter,
             radius: CGFloat(radius),
-            startAngle: CGFloat(-rad(Float(90))),
-            endAngle: CGFloat(rad(360-90)),
+            startAngle: CGFloat(-rad(degrees: Float(90))),
+            endAngle: CGFloat(rad(degrees: 360-90)),
             clockwise: true)
         
-        backgroundLayer.path           = circlePath.CGPath
+        backgroundLayer.path           = circlePath.cgPath
         progressLayer.path             = backgroundLayer.path
     }
     
     //MARK:- Public methods
     
-    public func imageURL(URL: NSURL) {
-        let urlRequest = NSURLRequest(URL: URL)
-        let cachedImage = (cacheEnabled) ? cache.imageForURL(URL) : nil
+    public func imageURL(URL: URL) {
+        let urlRequest = URLRequest(url: URL)
+        let cachedImage = (cacheEnabled) ? cache.image(forURL: URL) : nil
         
         if (cachedImage != nil) {
-            updateImage(cachedImage!, animated: false)
+            update(image: cachedImage!, animated: false)
         } else {
-            let session = NSURLSession(configuration: NSURLSessionConfiguration.defaultSessionConfiguration(), delegate: self, delegateQueue: nil)
-            let downloadTask = session.downloadTaskWithRequest(urlRequest)
+            let session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
+            let downloadTask = session.downloadTask(with: urlRequest)
             downloadTask.resume()
         }
         
     }
     
-    //MARK:- NSURLSessionDownloadDelegate implemention
+    //MARK:- URLSessionDownloadDelegate implemention
     
-    public func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didFinishDownloadingToURL location: NSURL) {
-        if let data = NSData(contentsOfURL: location) {
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+       
+        if let data =  try? Data(contentsOf: location) {
             let image = UIImage(data: data)
-            dispatch_async(dispatch_get_main_queue(), {
-                self.updateImage(image , animated: true)
-            })
+            DispatchQueue.main.async {
+                self.update(image: image , animated: true)
+            }
             if cacheEnabled {
-                if let url = downloadTask.response?.URL {
-                    cache.image(image, URL: url)
+                if let url = downloadTask.response?.url {
+                    cache.save(image: image, atURL: url)
                 }
             }
             
         }
     }
     
-    public func URLSession(session: NSURLSession, downloadTask: NSURLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
-        dispatch_async(dispatch_get_main_queue(), {
-            self.progressLayer.strokeEnd        = progress
-            self.backgroundLayer.strokeStart    = progress
-        })
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+            let progress: CGFloat = CGFloat(totalBytesWritten)/CGFloat(totalBytesExpectedToWrite)
+        DispatchQueue.main.async {
+                self.progressLayer.strokeEnd        = progress
+                self.backgroundLayer.strokeStart    = progress
+            }
     }
+
     
 }
 
